@@ -45,11 +45,11 @@ var OUTFILE = path.join(BASE_PATH,"out.txt");
 if (args.help) {
     printHelp();
 } else if (args.in || args._.includes("-")) {
-    let tooLong = CAF.timeout(3, "Cancelling!  Took too long...");  // cancellation token
+    let tooLong = CAF.timeout(25, "Cancelling!  Took too long...");  // cancellation token
     processFile(tooLong, process.stdin).catch(error);
 } else if (args.file) {
     let stream=fs.createReadStream(path.join(BASE_PATH, args.file));
-    let tooLong = CAF.timeout(3, "Cancelling!  Took too long...");  // cancellation token
+    let tooLong = CAF.timeout(25, "Cancelling!  Took too long...");  // cancellation token
     processFile(tooLong, stream)
     .then(function() {
         console.log("Completed...");
@@ -61,6 +61,8 @@ if (args.help) {
 
 function *processFile(signal, inStream) {
     var outStream = inStream;
+
+
 
     if (args.uncompress) {
         let gunzipStream = zlib.createGunzip();
@@ -90,6 +92,12 @@ function *processFile(signal, inStream) {
     }
 
         outStream.pipe(targetStream);
+
+        signal.pr.catch(function f() {
+            outStream.unpipe(targetStream);
+            outStream.destroy();
+        }); // stop processing the stream
+
         yield streamComplete(outStream);
 }
 
