@@ -18,13 +18,13 @@ function printHelp() {
     console.log("--in, -                  process stdin");
     console.log("--out                    print to stdout");
     console.log("--compress               gzip the stream");
-    console.log("--uncompress             gunzip the stream")
+    console.log("--uncompress             gunzip the stream");
     console.log("");
 }
 
 var args = require("minimist")(process.argv.slice(2), {
-    boolean: [ "help","in","out","compress" ],
-    string: [ "file" ]
+    boolean: ["help", "in", "out", "compress", "uncompress"],
+    string: ["file"]
 });
 
 var BASE_PATH = path.resolve(
@@ -35,25 +35,22 @@ var OUTFILE = path.join(BASE_PATH,"out.txt");
 
 if (args.help) {
     printHelp();
-}
-else if (
-    args.in ||
-    args._.includes("-")
-    ) {
+} else if (args.in || args._.includes("-")) {
     processFile(process.stdin);
-}
-else if (args.file) {
+} else if (args.file) {
     let stream=fs.createReadStream(path.join(BASE_PATH, args.file));
     processFile(stream);
-}
-else {
+} else {
     error("Incorrect usage.", true);
-
 }
 
 function processFile(inStream) {
     var outStream = inStream;
-    var count = 0;
+
+    if (args.uncompress) {
+        let gunzipStream = zlib.createGunzip();
+        outStream = outStream.pipe(gunzipStream);
+    }
 
     var upperStream = new Transform({
         transform(chunk, enc, cb) {
@@ -73,8 +70,7 @@ function processFile(inStream) {
     var targetStream;
     if (args.out) {
         targetStream = process.stdout;
-    }
-    else {
+    } else {
         targetStream = fs.createWriteStream(OUTFILE);
     }
     outStream.pipe(targetStream);
